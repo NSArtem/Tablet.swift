@@ -1,91 +1,100 @@
-![Alamofire: Elegant Networking in Swift](https://raw.githubusercontent.com/maxsokolov/tablet/assets/logo.png)
+![Tablet.swift](https://raw.githubusercontent.com/maxsokolov/tablet/assets/logo.png)
 
-#Tablet.swift
+# Tablet.swift
 
-<p align="left">
-<a href="https://travis-ci.org/maxsokolov/Tablet.swift"><img src="https://api.travis-ci.org/maxsokolov/Tablet.swift.svg" alt="Build Status" /></a>
-<a href="https://developer.apple.com/swift"><img src="https://img.shields.io/badge/Swift_2.2-compatible-4BC51D.svg?style=flat" alt="Swift 2.2 compatible" /></a>
-<img src="https://img.shields.io/badge/platform-iOS-blue.svg?style=flat" alt="Platform iOS" />
-<a href="https://cocoapods.org/pods/tablet"><img src="https://img.shields.io/badge/pod-0.5.0-blue.svg" alt="CocoaPods compatible" /></a>
-<a href="https://raw.githubusercontent.com/maxsokolov/tablet/master/LICENSE"><img src="http://img.shields.io/badge/license-MIT-blue.svg?style=flat" alt="License: MIT" /></a>
-</p>
+[![Swift 2.2](https://img.shields.io/badge/Swift-2.2-orange.svg)](https://swift.org)
+[![Platform](https://img.shields.io/badge/platform-iOS-blue.svg)](https://developer.apple.com/ios/)
+[![CocoaPods](https://img.shields.io/badge/CocoaPods-0.5.0-blue.svg)](https://cocoapods.org/pods/tablet)
+[![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
 
-Tablet is a super lightweight yet powerful generic library that handles a complexity of UITableView's datasource and delegate methods in a Swift environment. Tablet's goal is to provide an easiest way to create complex table views. With Tablet you don't have to write a messy code of `switch` or `if` statements when you deal with bunch of different cells in different sections. 
+Tablet is a lightweight, generic library for managing `UITableView` data sources and delegate actions in Swift. It helps build table views with multiple cell types and sections without filling view controllers with repetitive `switch` and `if` statements.
+
+> **Compatibility note:** This repository documents the original Swift 2.2 API and targets iOS 8.0+. It is legacy Swift code; modern Swift and Xcode versions may require a port.
 
 ## Features
 
-- [x] Type-safe cells based on generics
-- [x] The easiest way to map your models or view models to cells
-- [x] Correctly handles autolayout cells with multiline labels
-- [x] Chainable cell actions (select/deselect etc.)
-- [x] Support cells created from code, xib, or storyboard
-- [x] Automatic xib/classes registration
-- [x] No need to subclass
-- [x] Extensibility
-- [x] Tests
+- Type-safe cells using generics
+- Map models or view models to table-view cells
+- Self-sizing cells with Auto Layout and multiline labels
+- Chainable cell actions, including selection and display callbacks
+- Support for cells created in code, XIBs, or storyboards
+- Automatic cell class and XIB registration
+- No need to subclass the library's builders
+- Extensible action handling
+- Tests
 
-That's almost all you need to build a bunch of cells in a section:
+For example, a row builder can be created from a collection of values:
+
 ```swift
-let builder = TableRowBuilder<String, MyTableViewCell>(items: ["1", "2", "3", "4", "5"])
+let builder = TableRowBuilder<String, MyTableViewCell>(
+    items: ["1", "2", "3", "4", "5"]
+)
 ```
-Tablet relies on <a href="https://developer.apple.com/library/ios/documentation/UserExperience/Conceptual/AutolayoutPG/WorkingwithSelf-SizingTableViewCells.html" target="_blank">self-sizing table view cells</a>, respects cells reusability feature and also built with performace in mind. You don't have to worry about anything, just create your cells, setup autolayout constraints and be happy. See the Usage section to learn more.
+
+Tablet relies on [self-sizing table-view cells](https://developer.apple.com/library/archive/documentation/UserExperience/Conceptual/AutolayoutPG/WorkingwithSelf-SizingTableViewCells.html) and cell reuse. Create your cells, configure their Auto Layout constraints, and let the table view size and reuse them.
 
 ## Requirements
 
-- iOS 8.0+
-- Xcode 7.0+
+- iOS 8.0 or later
+- Xcode 7.0 or later
 - Swift 2.2
 
 ## Installation
 
 ### CocoaPods
-To integrate Tablet into your Xcode project using CocoaPods, specify it in your `Podfile`:
+
+Add Tablet to your `Podfile`:
 
 ```ruby
-source 'https://github.com/CocoaPods/Specs.git'
 platform :ios, '8.0'
 use_frameworks!
 
-pod 'Tablet'
+target 'YourApp' do
+  pod 'Tablet'
+end
 ```
 
-Then, run the following command:
+Then install the dependency:
 
-```bash
-$ pod install
+```sh
+pod install
+```
+
+Open the generated `.xcworkspace` and import the framework where needed:
+
+```swift
+import Tablet
 ```
 
 ## Usage
 
 ### Type-safe configurable cells
 
-Let's say you want to put your cell configuration logic into cell itself. Say you want to pass your view model (or even model) to your cell.
-You could easily do this using the `TableRowBuilder`. Your cell should conforms to `ConfigurableCell` protocol as you may see in example below:
+To keep configuration logic inside a custom cell, conform to `ConfigurableCell`. The cell's `T` type represents the model or view model it receives.
 
 ```swift
 import Tablet
 
-class MyTableViewCell : UITableViewCell, ConfigurableCell {
+class MyTableViewCell: UITableViewCell, ConfigurableCell {
+    typealias T = User
 
-	typealias T = User
+    // Optional when the reusable identifier matches the class name.
+    static func reusableIdentifier() -> String {
+        return "reusable_id"
+    }
 
-	// this method is not required to be implemented if your cell's id equals to class name
-	static func reusableIdentifier() -> String {
-		return "reusable_id"
-	}
-
-	static func estimatedHeight() -> Float {
+    static func estimatedHeight() -> Float {
         return 255
     }
 
-	func configure(item: T) { // item is user here
-
-		textLabel?.text = item.username
-		detailTextLabel?.text = item.isActive ? "Active" : "Inactive"
-	}
+    func configure(item: T) {
+        textLabel?.text = item.username
+        detailTextLabel?.text = item.isActive ? "Active" : "Inactive"
+    }
 }
 ```
-Once you've implemented the protocol, simply use the `TableRowBuilder` to build cells:
+
+Build the rows and add them to a table director:
 
 ```swift
 import Tablet
@@ -93,110 +102,126 @@ import Tablet
 let rowBuilder = TableRowBuilder<User, MyTableViewCell>()
 rowBuilder += users
 
-director = TableDirector(tableView: tableView)
+let tableDirector = TableDirector(tableView: tableView)
 tableDirector += TableSectionBuilder(rows: [rowBuilder])
 ```
 
-### Very basic table view
+### A basic table view
 
-You may want to setup a very basic table view, without any custom cells. In that case simply use the `TableBaseRowBuilder`.
+For a standard `UITableViewCell`, use `TableBaseRowBuilder` and configure the cell with an action:
 
 ```swift
 import Tablet
 
-let rowBuilder = TableBaseRowBuilder<User, UITableViewCell>(items: [user1, user2, user3], id: "reusable_id")
-	.action(.configure) { (data) in
+let rowBuilder = TableBaseRowBuilder<User, UITableViewCell>(
+    items: [user1, user2, user3],
+    id: "reusable_id"
+)
+.action(.configure) { data in
+    data.cell?.textLabel?.text = data.item.username
+    data.cell?.detailTextLabel?.text = data.item.isActive ? "Active" : "Inactive"
+}
 
-		data.cell?.textLabel?.text = data.item.username
-		data.cell?.detailTextLabel?.text = data.item.isActive ? "Active" : "Inactive"
-	}
+let sectionBuilder = TableSectionBuilder(
+    headerTitle: "Users",
+    footerTitle: nil,
+    rows: [rowBuilder]
+)
 
-let sectionBuilder = TableSectionBuilder(headerTitle: "Users", footerTitle: nil, rows: [rowBuilder])
-
-director = TableDirector(tableView: tableView)
-director += sectionBuilder
+let tableDirector = TableDirector(tableView: tableView)
+tableDirector += sectionBuilder
 ```
 
 ### Cell actions
 
-Tablet provides a chaining approach to handle actions from your cells:
+Chain handlers to respond to supported table and cell events:
 
 ```swift
 import Tablet
 
-let rowBuilder = TableRowBuilder<User, MyTableViewCell>(items: [user1, user2, user3], id: "reusable_id")
-	.action(.configure) { (data) in
-
-	}
-	.action(.click) { (data) in
-
-	}
-	.valueAction(.shouldHighlight) { (data) in
-
-		return false
-	}
+let rowBuilder = TableRowBuilder<User, MyTableViewCell>(
+    items: [user1, user2, user3],
+    id: "reusable_id"
+)
+.action(.configure) { data in
+    // Configure the cell.
+}
+.action(.click) { data in
+    // Handle a row tap.
+}
+.valueAction(.shouldHighlight) { data in
+    return false
+}
 ```
 
-### Custom cell actions
+The library also supports custom actions. Invoke an `Action` from a control inside your cell:
+
 ```swift
 import Tablet
 
 struct MyCellActions {
-	static let ButtonClicked = "ButtonClicked"
+    static let ButtonClicked = "ButtonClicked"
 }
 
-class MyTableViewCell : UITableViewCell {
-
-	@IBAction func buttonClicked(sender: UIButton) {
-
-		Action(key: MyCellActions.ButtonClicked, sender: self, userInfo: nil).invoke()
-	}
+class MyTableViewCell: UITableViewCell {
+    @IBAction func buttonClicked(sender: UIButton) {
+        Action(
+            key: MyCellActions.ButtonClicked,
+            sender: self,
+            userInfo: nil
+        ).invoke()
+    }
 }
 ```
-And receive this actions with your row builder:
+
+Register a handler for that action on the row builder:
+
 ```swift
-import Tablet
-
 let rowBuilder = TableRowBuilder<User, MyTableViewCell>(items: users)
-	.action(.click) { (data) in
-		
-	}
-	.action(.willDisplay) { (data) in
-		
-	}
-	.action(MyCellActions.ButtonClicked) { (data) in
-		
-	}
+    .action(MyCellActions.ButtonClicked) { data in
+        // Handle the button action.
+    }
 ```
 
-## Extensibility
+Other events, such as `.willDisplay`, can be handled in the same way when supported by the library.
 
-If you find that Tablet is not provide an action you need, for example you need UITableViewDelegate's `didEndDisplayingCell` method and it's not out of the box,
-simply provide an extension for `TableDirector`:
+## Extending Tablet
+
+If you need a delegate callback that Tablet does not expose directly, you can extend `TableDirector` and forward it as a custom action. For example, to handle `tableView(_:didEndDisplaying:forRowAt:)`:
+
 ```swift
 import Tablet
 
 struct MyTableActions {
-	static let DidEndDisplayingCell = "DidEndDisplayingCell"
+    static let DidEndDisplayingCell = "DidEndDisplayingCell"
 }
 
 extension TableDirector {
-
-	public func tableView(tableView: UITableView, didEndDisplayingCell cell: UITableViewCell, forRowAtIndexPath indexPath: NSIndexPath) {
-
-		invoke(action: .custom(MyTableActions.DidEndDisplayingCell), cell: cell, indexPath: indexPath)
-	}
+    public func tableView(
+        tableView: UITableView,
+        didEndDisplayingCell cell: UITableViewCell,
+        forRowAtIndexPath indexPath: NSIndexPath
+    ) {
+        invoke(
+            action: .custom(MyTableActions.DidEndDisplayingCell),
+            cell: cell,
+            indexPath: indexPath
+        )
+    }
 }
 ```
-Catch your action with row builder:
+
+Then handle the custom action in the row builder:
+
 ```swift
 let rowBuilder = TableRowBuilder<User, MyTableViewCell>(items: users)
-	.action(MyTableActions.DidEndDisplayingCell) { (data) -> Void in
-
-	}
+    .action(MyTableActions.DidEndDisplayingCell) { data in
+        // Handle the cell leaving the screen.
+    }
 ```
-You could also invoke an action that returns a value.
+
+The same pattern can be used for custom callbacks that return a value, where the API supports it.
 
 ## License
 
-Tablet is available under the MIT license. See LICENSE for details.
+Tablet is available under the [MIT License](LICENSE).
